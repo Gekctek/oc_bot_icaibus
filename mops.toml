@@ -1,2 +1,5 @@
 [dependencies]
 base = "0.12.1"
+http-types = "1.0.1"
+json = "0.2.2"
+base64 = "1.0.0"
