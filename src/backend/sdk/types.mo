@@ -182,9 +182,9 @@ module {
     };
 
     public type BotPermissions = {
-        #chat : [GroupPermission];
-        #community : [CommunityPermission];
-        #message : [MessagePermission];
+        chat : [GroupPermission];
+        community : [CommunityPermission];
+        message : [MessagePermission];
     };
 
     public type CommunityPermission = {
@@ -222,5 +222,60 @@ module {
         #prize;
         #p2pSwap;
         #videoCall;
+    };
+
+    public type BotSchema = {
+        description : Text;
+        commands : [SlashCommand];
+        autonomousConfig : ?AutonomousConfig;
+    };
+
+    public type AutonomousConfig = {
+        permissions : ?BotPermissions;
+    };
+
+    public type SlashCommand = {
+        name : Text;
+        description : Text;
+        placeholder : ?Text;
+        params : [SlashCommandParam];
+        permissions : BotPermissions;
+    };
+
+    public type SlashCommandParam = {
+        name : Text;
+        description : Text;
+        placeholder : ?Text;
+        required : Bool;
+        paramType : SlashCommandParamType;
+    };
+
+    public type SlashCommandParamType = {
+        #userParam;
+        #booleanParam;
+        #stringParam : StringParam;
+        #numberParam : NumberParam;
+    };
+
+    public type StringParam = {
+        minLength : Nat;
+        maxLength : Nat;
+        choices : [StringChoice];
+    };
+
+    public type NumberParam = {
+        minLength : Nat;
+        maxLength : Nat;
+        choices : [NumberChoice];
+    };
+
+    public type StringChoice = {
+        name : Text;
+        value : Text;
+    };
+
+    public type NumberChoice = {
+        name : Text;
+        value : Nat;
     };
 };

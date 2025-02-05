@@ -12,6 +12,154 @@ import Base64 "mo:base64";
 
 module {
 
+    public func serializeBotSchema(botSchema : SdkTypes.BotSchema) : Json.JSON {
+        let autonomousConfigJson = switch (botSchema.autonomousConfig) {
+            case (null) #Null;
+            case (?config) serializeAutonomousConfig(config);
+        };
+
+        #Object([
+            ("description", #String(botSchema.description)),
+            ("commands", serializeArrayOfValues(botSchema.commands, serializeSlashCommand)),
+            ("autonomous_config", autonomousConfigJson),
+        ]);
+    };
+
+    private func serializeAutonomousConfig(config : SdkTypes.AutonomousConfig) : Json.JSON {
+        let permissionsJson = switch (config.permissions) {
+            case (null) #Null;
+            case (?permissions) serializeBotPermissions(permissions);
+        };
+
+        #Object([("permissions", permissionsJson)]);
+    };
+
+    private func serializeSlashCommand(command : SdkTypes.SlashCommand) : Json.JSON {
+        let placeholderJson = switch (command.placeholder) {
+            case (null) #Null;
+            case (?placeholder) #String(placeholder);
+        };
+
+        #Object([
+            ("name", #String(command.name)),
+            ("description", #String(command.description)),
+            ("placeholder", placeholderJson),
+            ("params", serializeArrayOfValues(command.params, serializeSlashCommandParam)),
+            ("permissions", serializeBotPermissions(command.permissions)),
+        ]);
+    };
+
+    private func serializeSlashCommandParam(param : SdkTypes.SlashCommandParam) : Json.JSON {
+        let placeholderJson = switch (param.placeholder) {
+            case (null) #Null;
+            case (?placeholder) #String(placeholder);
+        };
+
+        #Object([
+            ("name", #String(param.name)),
+            ("description", #String(param.description)),
+            ("placeholder", placeholderJson),
+            ("required", #Bool(param.required)),
+            ("param_type", serializeParamType(param.paramType)),
+        ]);
+    };
+
+    private func serializeParamType(paramType : SdkTypes.SlashCommandParamType) : Json.JSON {
+        switch (paramType) {
+            case (#userParam) #String("UserParam");
+            case (#booleanParam) #String("BooleanParam");
+            case (#stringParam(strParam)) #Object([("StringParam", serializeStringParam(strParam))]);
+            case (#numberParam(numParam)) #Object([("NumberParam", serializeNumberParam(numParam))]);
+        };
+    };
+
+    private func serializeStringParam(param : SdkTypes.StringParam) : Json.JSON {
+        #Object([
+            ("min_length", #Number(#Int(param.minLength))),
+            ("max_length", #Number(#Int(param.maxLength))),
+            ("choices", serializeArrayOfValues(param.choices, serializeStringChoice)),
+        ]);
+    };
+
+    private func serializeNumberParam(param : SdkTypes.NumberParam) : Json.JSON {
+        #Object([
+            ("min_length", #Number(#Int(param.minLength))),
+            ("max_length", #Number(#Int(param.maxLength))),
+            ("choices", serializeArrayOfValues(param.choices, serializeNumberChoice)),
+        ]);
+    };
+
+    private func serializeStringChoice(choice : SdkTypes.StringChoice) : Json.JSON {
+        #Object([
+            ("name", #String(choice.name)),
+            ("value", #String(choice.value)),
+        ]);
+    };
+
+    private func serializeNumberChoice(choice : SdkTypes.NumberChoice) : Json.JSON {
+        #Object([
+            ("name", #String(choice.name)),
+            ("value", #Number(#Int(choice.value))),
+        ]);
+    };
+
+    private func serializeBotPermissions(permissions : SdkTypes.BotPermissions) : Json.JSON {
+        #Object([
+            ("community", serializeArrayOfValues(permissions.community, serializeCommunityPermission)),
+            ("chat", serializeArrayOfValues(permissions.chat, serializeGroupPermission)),
+            ("message", serializeArrayOfValues(permissions.message, serializeMessagePermission)),
+        ]);
+    };
+
+    private func serializeCommunityPermission(permission : SdkTypes.CommunityPermission) : Json.JSON {
+        #String(
+            switch (permission) {
+                case (#changeRoles) "ChangeRoles";
+                case (#updateDetails) "UpdateDetails";
+                case (#inviteUsers) "InviteUsers";
+                case (#removeMembers) "RemoveMembers";
+                case (#createPublicChannel) "CreatePublicChannel";
+                case (#createPrivateChannel) "CreatePrivateChannel";
+                case (#manageUserGroups) "ManageUserGroups";
+            }
+        );
+    };
+
+    private func serializeGroupPermission(permission : SdkTypes.GroupPermission) : Json.JSON {
+        #String(
+            switch (permission) {
+                case (#changeRoles) "ChangeRoles";
+                case (#updateGroup) "UpdateGroup";
+                case (#addMembers) "AddMembers";
+                case (#inviteUsers) "InviteUsers";
+                case (#removeMembers) "RemoveMembers";
+                case (#deleteMessages) "DeleteMessages";
+                case (#pinMessages) "PinMessages";
+                case (#reactToMessages) "ReactToMessages";
+                case (#mentionAllMembers) "MentionAllMembers";
+                case (#startVideoCall) "StartVideoCall";
+            }
+        );
+    };
+
+    private func serializeMessagePermission(permission : SdkTypes.MessagePermission) : Json.JSON {
+        #String(
+            switch (permission) {
+                case (#text) "Text";
+                case (#image) "Image";
+                case (#video) "Video";
+                case (#audio) "Audio";
+                case (#file) "File";
+                case (#poll) "Poll";
+                case (#crypto) "Crypto";
+                case (#giphy) "Giphy";
+                case (#prize) "Prize";
+                case (#p2pSwap) "P2pSwap";
+                case (#videoCall) "VideoCall";
+            }
+        );
+    };
+
     public func serializeSuccess(success : SdkTypes.SuccessResult) : Json.JSON {
         let messageJson = switch (success.message) {
             case (null) #Null;
@@ -234,21 +382,19 @@ module {
         let ?botApiGateway = getAsPrincipal(dataJson, "bot_api_gateway") else return null;
         let ?bot = getAsPrincipal(dataJson, "bot") else return null;
 
-        let ?#Object(grantedPermissionsKeys) = Json.get(dataJson, "granted_permissions") else return null;
-        let grantedPermissions : SdkTypes.BotPermissions = switch (grantedPermissionsKeys[0]) {
-            case (("Community", communityValue)) {
-                let ?communityPermissions = deserializeArrayOfValues(communityValue, deserializeCommunityPermission) else return null;
-                #community(communityPermissions);
-            };
-            case (("Chat", chatValue)) {
-                let ?groupPermissions = deserializeArrayOfValues(chatValue, deserializeGroupPermission) else return null;
-                #chat(groupPermissions);
-            };
-            case (("Message", messageValue)) {
-                let ?messagePermissions = deserializeArrayOfValues(messageValue, deserializeMessagePermission) else return null;
-                #message(messagePermissions);
-            };
-            case (_) return null;
+        let ?communityPermissionsJson = Json.get(dataJson, "granted_permissions.community") else return null;
+        let ?communityPermissions = deserializeArrayOfValues(communityPermissionsJson, deserializeCommunityPermission) else return null;
+
+        let ?chatPermissionsJson = Json.get(dataJson, "granted_permissions.chat") else return null;
+        let ?chatPermissions = deserializeArrayOfValues(chatPermissionsJson, deserializeGroupPermission) else return null;
+
+        let ?messagePermissionsJson = Json.get(dataJson, "granted_permissions.message") else return null;
+        let ?messagePermissions = deserializeArrayOfValues(messagePermissionsJson, deserializeMessagePermission) else return null;
+
+        let grantedPermissions : SdkTypes.BotPermissions = {
+            community = communityPermissions;
+            chat = chatPermissions;
+            message = messagePermissions;
         };
         let ?#String(commandName) = Json.get(dataJson, "command.name") else return null;
         let ?commandArgsJson = Json.get(dataJson, "command.args") else return null;

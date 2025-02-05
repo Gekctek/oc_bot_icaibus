@@ -1,4 +1,3 @@
-import Json "mo:json";
 import SdkTypes "../sdk/types";
 
 module {
@@ -7,7 +6,23 @@ module {
         #success({ message = null });
     };
 
-    public func getSchema() : Json.JSON {
-        #Object([("name", #String("publish")), ("description", #String("Publish message to ICaiBus")), ("placeholder", #String("TODO")), ("params", #Array([#Object([("name", #String("help")), ("description", #String("Get help")), ("type", #String("boolean"))])])), ("permissions", #Object([("community", #Array([])), ("chat", #Array([])), ("message", #Array([#String("Text")]))]))]);
+    public func getSchema() : SdkTypes.SlashCommand {
+        {
+            name = "publish";
+            placeholder = ?"TODOZ";
+            description = "Publish message to ICaiBus";
+            params = [{
+                name = "help";
+                description = "Get help";
+                placeholder = null;
+                required = false;
+                paramType = #booleanParam;
+            }];
+            permissions = {
+                community = [];
+                chat = [];
+                message = [#text];
+            };
+        };
     };
 };
