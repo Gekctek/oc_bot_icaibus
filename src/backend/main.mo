@@ -1,10 +1,6 @@
 import HttpTypes "mo:http-types";
-import Blob "mo:base/Blob";
-import Text "mo:base/Text";
-import Json "mo:json";
 import Publish "./commands/publish";
 import SdkTypes "./sdk/types";
-import SdkSerializer "./sdk/serializer";
 import SdkHttp "./sdk/http";
 
 actor {
@@ -21,20 +17,26 @@ actor {
     };
   };
 
-  private func execute_command(action : SdkTypes.BotActionByCommand) : async* SdkTypes.CommandResponse {
-    switch (action.command.name) {
-      case ("publish") await* Publish.execute(action.command.args);
-      case (_) #badRequest(#commandNotFound);
+  private func execute(action : SdkTypes.BotAction) : async* SdkTypes.CommandResponse {
+    switch (action) {
+      case (#command(commandAction)) switch (commandAction.command.name) {
+        case ("publish") await* Publish.execute(commandAction.command.args);
+        case (_) #badRequest(#commandNotFound);
+      };
+      case (#apiKey(apiKeyAction)) switch (apiKeyAction.scope) {
+        // TODO
+        case (_) #badRequest(#commandNotFound);
+      };
     };
   };
 
-  let handler = SdkHttp.HttpHandler(botSchema, execute_command);
+  let handler = SdkHttp.HttpHandler(botSchema, execute);
 
   public query func http_request(request : HttpTypes.Request) : async HttpTypes.Response {
     handler.http_request(request);
   };
 
   public func http_request_update(request : HttpTypes.UpdateRequest) : async HttpTypes.UpdateResponse {
-    handler.http_request_update(request);
+    await* handler.http_request_update(request);
   };
 };

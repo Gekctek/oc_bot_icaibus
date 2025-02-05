@@ -152,6 +152,23 @@ module {
 
     public type C2CError = (Int, Text);
 
+    public type BotAction = {
+        #command : BotActionByCommand;
+        #apiKey : BotActionByApiKey;
+    };
+
+    public type BotActionByApiKey = {
+        botApiGateway : CanisterId;
+        bot : UserId;
+        scope : AccessTokenScope;
+        grantedPermissions : BotPermissions;
+    };
+
+    public type AccessTokenScope = {
+        #chat : Chat;
+        #community : CanisterId;
+    };
+
     public type BotActionByCommand = {
         botApiGateway : CanisterId;
         bot : UserId;

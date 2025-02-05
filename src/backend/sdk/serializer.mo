@@ -2,117 +2,117 @@ import Json "mo:json";
 import Text "mo:base/Text";
 import Result "mo:base/Result";
 import Iter "mo:base/Iter";
-import Blob "mo:base/Blob";
 import Int "mo:base/Int";
-import Time "mo:base/Time";
 import Principal "mo:base/Principal";
 import Buffer "mo:base/Buffer";
+import Debug "mo:base/Debug";
+import Nat "mo:base/Nat";
 import SdkTypes "./types";
-import Base64 "mo:base64";
+import IterTools "mo:itertools/Iter";
 
 module {
 
-    public func serializeBotSchema(botSchema : SdkTypes.BotSchema) : Json.JSON {
+    public func serializeBotSchema(botSchema : SdkTypes.BotSchema) : Json.Json {
         let autonomousConfigJson = switch (botSchema.autonomousConfig) {
-            case (null) #Null;
+            case (null) #null_;
             case (?config) serializeAutonomousConfig(config);
         };
 
-        #Object([
-            ("description", #String(botSchema.description)),
+        #object_([
+            ("description", #string(botSchema.description)),
             ("commands", serializeArrayOfValues(botSchema.commands, serializeSlashCommand)),
             ("autonomous_config", autonomousConfigJson),
         ]);
     };
 
-    private func serializeAutonomousConfig(config : SdkTypes.AutonomousConfig) : Json.JSON {
+    private func serializeAutonomousConfig(config : SdkTypes.AutonomousConfig) : Json.Json {
         let permissionsJson = switch (config.permissions) {
-            case (null) #Null;
+            case (null) #null_;
             case (?permissions) serializeBotPermissions(permissions);
         };
 
-        #Object([("permissions", permissionsJson)]);
+        #object_([("permissions", permissionsJson)]);
     };
 
-    private func serializeSlashCommand(command : SdkTypes.SlashCommand) : Json.JSON {
+    private func serializeSlashCommand(command : SdkTypes.SlashCommand) : Json.Json {
         let placeholderJson = switch (command.placeholder) {
-            case (null) #Null;
-            case (?placeholder) #String(placeholder);
+            case (null) #null_;
+            case (?placeholder) #string(placeholder);
         };
 
-        #Object([
-            ("name", #String(command.name)),
-            ("description", #String(command.description)),
+        #object_([
+            ("name", #string(command.name)),
+            ("description", #string(command.description)),
             ("placeholder", placeholderJson),
             ("params", serializeArrayOfValues(command.params, serializeSlashCommandParam)),
             ("permissions", serializeBotPermissions(command.permissions)),
         ]);
     };
 
-    private func serializeSlashCommandParam(param : SdkTypes.SlashCommandParam) : Json.JSON {
+    private func serializeSlashCommandParam(param : SdkTypes.SlashCommandParam) : Json.Json {
         let placeholderJson = switch (param.placeholder) {
-            case (null) #Null;
-            case (?placeholder) #String(placeholder);
+            case (null) #null_;
+            case (?placeholder) #string(placeholder);
         };
 
-        #Object([
-            ("name", #String(param.name)),
-            ("description", #String(param.description)),
+        #object_([
+            ("name", #string(param.name)),
+            ("description", #string(param.description)),
             ("placeholder", placeholderJson),
-            ("required", #Bool(param.required)),
+            ("required", #bool(param.required)),
             ("param_type", serializeParamType(param.paramType)),
         ]);
     };
 
-    private func serializeParamType(paramType : SdkTypes.SlashCommandParamType) : Json.JSON {
+    private func serializeParamType(paramType : SdkTypes.SlashCommandParamType) : Json.Json {
         switch (paramType) {
-            case (#userParam) #String("UserParam");
-            case (#booleanParam) #String("BooleanParam");
-            case (#stringParam(strParam)) #Object([("StringParam", serializeStringParam(strParam))]);
-            case (#numberParam(numParam)) #Object([("NumberParam", serializeNumberParam(numParam))]);
+            case (#userParam) #string("UserParam");
+            case (#booleanParam) #string("BooleanParam");
+            case (#stringParam(strParam)) #object_([("StringParam", serializeStringParam(strParam))]);
+            case (#numberParam(numParam)) #object_([("NumberParam", serializeNumberParam(numParam))]);
         };
     };
 
-    private func serializeStringParam(param : SdkTypes.StringParam) : Json.JSON {
-        #Object([
-            ("min_length", #Number(#Int(param.minLength))),
-            ("max_length", #Number(#Int(param.maxLength))),
+    private func serializeStringParam(param : SdkTypes.StringParam) : Json.Json {
+        #object_([
+            ("min_length", #number(#int(param.minLength))),
+            ("max_length", #number(#int(param.maxLength))),
             ("choices", serializeArrayOfValues(param.choices, serializeStringChoice)),
         ]);
     };
 
-    private func serializeNumberParam(param : SdkTypes.NumberParam) : Json.JSON {
-        #Object([
-            ("min_length", #Number(#Int(param.minLength))),
-            ("max_length", #Number(#Int(param.maxLength))),
+    private func serializeNumberParam(param : SdkTypes.NumberParam) : Json.Json {
+        #object_([
+            ("min_length", #number(#int(param.minLength))),
+            ("max_length", #number(#int(param.maxLength))),
             ("choices", serializeArrayOfValues(param.choices, serializeNumberChoice)),
         ]);
     };
 
-    private func serializeStringChoice(choice : SdkTypes.StringChoice) : Json.JSON {
-        #Object([
-            ("name", #String(choice.name)),
-            ("value", #String(choice.value)),
+    private func serializeStringChoice(choice : SdkTypes.StringChoice) : Json.Json {
+        #object_([
+            ("name", #string(choice.name)),
+            ("value", #string(choice.value)),
         ]);
     };
 
-    private func serializeNumberChoice(choice : SdkTypes.NumberChoice) : Json.JSON {
-        #Object([
-            ("name", #String(choice.name)),
-            ("value", #Number(#Int(choice.value))),
+    private func serializeNumberChoice(choice : SdkTypes.NumberChoice) : Json.Json {
+        #object_([
+            ("name", #string(choice.name)),
+            ("value", #number(#int(choice.value))),
         ]);
     };
 
-    private func serializeBotPermissions(permissions : SdkTypes.BotPermissions) : Json.JSON {
-        #Object([
+    private func serializeBotPermissions(permissions : SdkTypes.BotPermissions) : Json.Json {
+        #object_([
             ("community", serializeArrayOfValues(permissions.community, serializeCommunityPermission)),
             ("chat", serializeArrayOfValues(permissions.chat, serializeGroupPermission)),
             ("message", serializeArrayOfValues(permissions.message, serializeMessagePermission)),
         ]);
     };
 
-    private func serializeCommunityPermission(permission : SdkTypes.CommunityPermission) : Json.JSON {
-        #String(
+    private func serializeCommunityPermission(permission : SdkTypes.CommunityPermission) : Json.Json {
+        #string(
             switch (permission) {
                 case (#changeRoles) "ChangeRoles";
                 case (#updateDetails) "UpdateDetails";
@@ -125,8 +125,8 @@ module {
         );
     };
 
-    private func serializeGroupPermission(permission : SdkTypes.GroupPermission) : Json.JSON {
-        #String(
+    private func serializeGroupPermission(permission : SdkTypes.GroupPermission) : Json.Json {
+        #string(
             switch (permission) {
                 case (#changeRoles) "ChangeRoles";
                 case (#updateGroup) "UpdateGroup";
@@ -142,8 +142,8 @@ module {
         );
     };
 
-    private func serializeMessagePermission(permission : SdkTypes.MessagePermission) : Json.JSON {
-        #String(
+    private func serializeMessagePermission(permission : SdkTypes.MessagePermission) : Json.Json {
+        #string(
             switch (permission) {
                 case (#text) "Text";
                 case (#image) "Image";
@@ -160,23 +160,23 @@ module {
         );
     };
 
-    public func serializeSuccess(success : SdkTypes.SuccessResult) : Json.JSON {
+    public func serializeSuccess(success : SdkTypes.SuccessResult) : Json.Json {
         let messageJson = switch (success.message) {
-            case (null) #Null;
+            case (null) #null_;
             case (?message) serializeMessage(message);
         };
-        #Object([("message", messageJson)]);
+        #object_([("message", messageJson)]);
     };
 
-    private func serializeMessage(message : SdkTypes.Message) : Json.JSON {
-        #Object([
-            ("id", #String(message.id)),
+    private func serializeMessage(message : SdkTypes.Message) : Json.Json {
+        #object_([
+            ("id", #string(message.id)),
             ("content", serializeMessageContent(message.content)),
-            ("finalised", #Bool(message.finalised)),
+            ("finalised", #bool(message.finalised)),
         ]);
     };
 
-    private func serializeMessageContent(content : SdkTypes.MessageContent) : Json.JSON {
+    private func serializeMessageContent(content : SdkTypes.MessageContent) : Json.Json {
         switch (content) {
             case (#text(text)) serializeTextContent(text);
             case (#image(image)) serializeImageContent(image);
@@ -188,20 +188,20 @@ module {
         };
     };
 
-    private func serializeTextContent(text : SdkTypes.TextContent) : Json.JSON {
-        #Object([("text", #String(text.text))]);
+    private func serializeTextContent(text : SdkTypes.TextContent) : Json.Json {
+        #object_([("text", #string(text.text))]);
     };
 
-    private func serializeImageContent(image : SdkTypes.ImageContent) : Json.JSON {
-        #Object([
-            ("width", #Number(#Int(image.width))),
-            ("height", #Number(#Int(image.height))),
-            ("thumbnail_data", #String(image.thumbnailData)),
+    private func serializeImageContent(image : SdkTypes.ImageContent) : Json.Json {
+        #object_([
+            ("width", #number(#int(image.width))),
+            ("height", #number(#int(image.height))),
+            ("thumbnail_data", #string(image.thumbnailData)),
             (
                 "caption",
                 serializeNullable<Text>(image.caption, serializeText),
             ),
-            ("mime_type", #String(image.mimeType)),
+            ("mime_type", #string(image.mimeType)),
             (
                 "blob_reference",
                 serializeNullable<SdkTypes.BlobReference>(image.blobReference, serializeBlobReference),
@@ -209,16 +209,16 @@ module {
         ]);
     };
 
-    private func serializeVideoContent(video : SdkTypes.VideoContent) : Json.JSON {
-        #Object([
-            ("width", #Number(#Int(video.width))),
-            ("height", #Number(#Int(video.height))),
-            ("thumbnail_data", #String(video.thumbnailData)),
+    private func serializeVideoContent(video : SdkTypes.VideoContent) : Json.Json {
+        #object_([
+            ("width", #number(#int(video.width))),
+            ("height", #number(#int(video.height))),
+            ("thumbnail_data", #string(video.thumbnailData)),
             (
                 "caption",
                 serializeNullable<Text>(video.caption, serializeText),
             ),
-            ("mime_type", #String(video.mimeType)),
+            ("mime_type", #string(video.mimeType)),
             (
                 "image_blob_reference",
                 serializeNullable<SdkTypes.BlobReference>(video.imageBlobReference, serializeBlobReference),
@@ -230,13 +230,13 @@ module {
         ]);
     };
 
-    private func serializeAudioContent(audio : SdkTypes.AudioContent) : Json.JSON {
-        #Object([
+    private func serializeAudioContent(audio : SdkTypes.AudioContent) : Json.Json {
+        #object_([
             (
                 "caption",
                 serializeNullable<Text>(audio.caption, serializeText),
             ),
-            ("mime_type", #String(audio.mimeType)),
+            ("mime_type", #string(audio.mimeType)),
             (
                 "blob_reference",
                 serializeNullable<SdkTypes.BlobReference>(audio.blobReference, serializeBlobReference),
@@ -244,15 +244,15 @@ module {
         ]);
     };
 
-    private func serializeFileContent(file : SdkTypes.FileContent) : Json.JSON {
-        #Object([
-            ("name", #String(file.name)),
+    private func serializeFileContent(file : SdkTypes.FileContent) : Json.Json {
+        #object_([
+            ("name", #string(file.name)),
             (
                 "caption",
                 serializeNullable<Text>(file.caption, serializeText),
             ),
-            ("mime_type", #String(file.mimeType)),
-            ("file_size", #Number(#Int(file.fileSize))),
+            ("mime_type", #string(file.mimeType)),
+            ("file_size", #number(#int(file.fileSize))),
             (
                 "blob_reference",
                 serializeNullable<SdkTypes.BlobReference>(file.blobReference, serializeBlobReference),
@@ -260,191 +260,221 @@ module {
         ]);
     };
 
-    private func serializePollContent(poll : SdkTypes.PollContent) : Json.JSON {
-        #Object([
+    private func serializePollContent(poll : SdkTypes.PollContent) : Json.Json {
+        #object_([
             ("config", serializePollConfig(poll.config)),
         ]);
     };
 
-    private func serializePollConfig(pollConfig : SdkTypes.PollConfig) : Json.JSON {
-        #Object([
+    private func serializePollConfig(pollConfig : SdkTypes.PollConfig) : Json.Json {
+        #object_([
             ("text", serializeNullable<Text>(pollConfig.text, serializeText)),
             ("options", serializeArrayOfValues(pollConfig.options, serializeText)),
             (
                 "end_date",
                 serializeNullable<Nat>(pollConfig.endDate, serializeInt),
             ),
-            ("anonymous", #Bool(pollConfig.anonymous)),
-            ("show_votes_before_end_date", #Bool(pollConfig.showVotesBeforeEndDate)),
-            ("allow_multiple_votes_per_user", #Bool(pollConfig.allowMultipleVotesPerUser)),
-            ("allow_user_to_change_vote", #Bool(pollConfig.allowUserToChangeVote)),
+            ("anonymous", #bool(pollConfig.anonymous)),
+            ("show_votes_before_end_date", #bool(pollConfig.showVotesBeforeEndDate)),
+            ("allow_multiple_votes_per_user", #bool(pollConfig.allowMultipleVotesPerUser)),
+            ("allow_user_to_change_vote", #bool(pollConfig.allowUserToChangeVote)),
         ]);
     };
 
-    private func serializeGiphyContent(giphy : SdkTypes.GiphyContent) : Json.JSON {
-        #Object([
+    private func serializeGiphyContent(giphy : SdkTypes.GiphyContent) : Json.Json {
+        #object_([
             ("caption", serializeNullable<Text>(giphy.caption, serializeText)),
-            ("title", #String(giphy.title)),
+            ("title", #string(giphy.title)),
             ("desktop", serializeGiphyImageVariant(giphy.desktop)),
             ("mobile", serializeGiphyImageVariant(giphy.mobile)),
         ]);
     };
 
-    private func serializeGiphyImageVariant(giphyImageVariant : SdkTypes.GiphyImageVariant) : Json.JSON {
-        #Object([
-            ("width", #Number(#Int(giphyImageVariant.width))),
-            ("height", #Number(#Int(giphyImageVariant.height))),
-            ("url", #String(giphyImageVariant.url)),
-            ("mime_type", #String(giphyImageVariant.mimeType)),
+    private func serializeGiphyImageVariant(giphyImageVariant : SdkTypes.GiphyImageVariant) : Json.Json {
+        #object_([
+            ("width", #number(#int(giphyImageVariant.width))),
+            ("height", #number(#int(giphyImageVariant.height))),
+            ("url", #string(giphyImageVariant.url)),
+            ("mime_type", #string(giphyImageVariant.mimeType)),
         ]);
     };
 
-    private func serializeText(option : Text) : Json.JSON = #String(option);
+    private func serializeText(option : Text) : Json.Json = #string(option);
 
-    private func serializeInt(int : Int) : Json.JSON = #Number(#Int(int));
+    private func serializeInt(int : Int) : Json.Json = #number(#int(int));
 
-    private func serializeArrayOfValues<T>(values : [T], serializer : T -> Json.JSON) : Json.JSON {
-        #Array(values.vals() |> Iter.map(_, serializer) |> Iter.toArray(_));
+    private func serializeArrayOfValues<T>(values : [T], serializer : T -> Json.Json) : Json.Json {
+        #array(values.vals() |> Iter.map(_, serializer) |> Iter.toArray(_));
     };
 
-    private func serializeBlobReference(blobReference : SdkTypes.BlobReference) : Json.JSON {
-        #Object([
-            ("canister_id", #String(Principal.toText(blobReference.canister))),
+    private func serializeBlobReference(blobReference : SdkTypes.BlobReference) : Json.Json {
+        #object_([
+            ("canister_id", #string(Principal.toText(blobReference.canister))),
             (
                 "blob_id",
-                #Number(#Int(blobReference.blobId)),
+                #number(#int(blobReference.blobId)),
             ),
         ]);
     };
 
-    private func serializeNullable<T>(value : ?T, serializer : T -> Json.JSON) : Json.JSON {
+    private func serializeNullable<T>(value : ?T, serializer : T -> Json.Json) : Json.Json {
         switch (value) {
-            case (null) #Null;
+            case (null) #null_;
             case (?v) serializer(v);
         };
     };
 
-    public func serializeBadRequest(badRequest : SdkTypes.BadRequestResult) : Json.JSON {
+    public func serializeBadRequest(badRequest : SdkTypes.BadRequestResult) : Json.Json {
         switch (badRequest) {
-            case (#accessTokenNotFound) #String("AccessTokenNotFound");
-            case (#accessTokenInvalid) #String("AccessTokenInvalid");
-            case (#accessTokenExpired) #String("AccessTokenExpired");
-            case (#commandNotFound) #String("CommandNotFound");
-            case (#argsInvalid) #String("ArgsInvalid");
+            case (#accessTokenNotFound) #string("AccessTokenNotFound");
+            case (#accessTokenInvalid) #string("AccessTokenInvalid");
+            case (#accessTokenExpired) #string("AccessTokenExpired");
+            case (#commandNotFound) #string("CommandNotFound");
+            case (#argsInvalid) #string("ArgsInvalid");
         };
     };
 
-    public func serializeInternalError(error : SdkTypes.InternalErrorResult) : Json.JSON {
+    public func serializeInternalError(error : SdkTypes.InternalErrorResult) : Json.Json {
         switch (error) {
-            case (#invalid(invalid)) serializeVariantWithValue("Invalid", #String(invalid));
+            case (#invalid(invalid)) serializeVariantWithValue("Invalid", #string(invalid));
             case (#canisterError(canisterError)) serializeVariantWithValue("CanisterError", serializeCanisterError(canisterError));
-            case (#c2cError((code, message))) serializeVariantWithValue("C2CError", #Array([#Number(#Int(code)), #String(message)]));
+            case (#c2cError((code, message))) serializeVariantWithValue("C2CError", #array([#number(#int(code)), #string(message)]));
         };
     };
 
-    private func serializeCanisterError(canisterError : SdkTypes.CanisterError) : Json.JSON {
+    private func serializeCanisterError(canisterError : SdkTypes.CanisterError) : Json.Json {
         switch (canisterError) {
-            case (#notAuthorized) #String("NotAuthorized");
-            case (#frozen) #String("Frozen");
-            case (#other(other)) serializeVariantWithValue("Other", #String(other));
+            case (#notAuthorized) #string("NotAuthorized");
+            case (#frozen) #string("Frozen");
+            case (#other(other)) serializeVariantWithValue("Other", #string(other));
         };
     };
 
-    private func serializeVariantWithValue(variant : Text, value : Json.JSON) : Json.JSON {
-        #Object([(variant, value)]);
+    private func serializeVariantWithValue(variant : Text, value : Json.Json) : Json.Json {
+        #object_([(variant, value)]);
     };
 
-    public func deserializeCommand(body : Blob) : ?SdkTypes.BotActionByCommand {
-        let ?jwt = Text.decodeUtf8(body) else return null;
-
-        let publicKeyPem = "TODO";
-        let botActionJson = switch (verify(jwt, publicKeyPem)) {
-            case (#ok(claims)) claims;
-            case (#err(_)) return null;
+    public func deserializeBotActionByCommand(dataJson : Json.Json) : Result.Result<SdkTypes.BotActionByCommand, Text> {
+        let (scopeType, scopeTypeValue) = switch (Json.getAsObject(dataJson, "scope")) {
+            case (#ok(scopeObj)) scopeObj[0];
+            case (#err(e)) return #err("Invalid 'scope' field: " # debug_show (e));
         };
-        deserializeCommandClaims(botActionJson);
-    };
-
-    private func deserializeCommandClaims(dataJson : Json.JSON) : ?SdkTypes.BotActionByCommand {
-        let ?#Object(scopeKeys) = Json.get(dataJson, "scope") else return null;
-        let scope : SdkTypes.BotActionScope = switch (scopeKeys[0]) {
-            case (("Chat", chatValue)) {
-                let ?chat = deserializeBotActionChatDetails(chatValue) else return null;
-                #chat(chat);
+        let scope : SdkTypes.BotActionScope = switch (scopeType) {
+            case ("Chat") switch (deserializeBotActionChatDetails(scopeTypeValue)) {
+                case (#ok(chat)) #chat(chat);
+                case (#err(e)) return #err("Invalid 'Chat' scope value: " # e);
             };
-            case (("Community", communityValue)) {
-                let ?community = deserializeBotActionCommunityDetails(communityValue) else return null;
-                #community(community);
+            case ("Community") switch (deserializeBotActionCommunityDetails(scopeTypeValue)) {
+                case (#ok(community)) #community(community);
+                case (#err(e)) return #err("Invalid 'Community' scope value: " # e);
             };
-            case (_) return null;
+            case (_) return #err("Invalid 'scope' field variant type: " # scopeType);
         };
 
-        let ?botApiGateway = getAsPrincipal(dataJson, "bot_api_gateway") else return null;
-        let ?bot = getAsPrincipal(dataJson, "bot") else return null;
+        let botApiGateway = switch (getAsPrincipal(dataJson, "bot_api_gateway")) {
+            case (#ok(v)) v;
+            case (#err(e)) return #err("Invalid 'bot_api_gateway' field: " # debug_show (e));
+        };
+        let bot = switch (getAsPrincipal(dataJson, "bot")) {
+            case (#ok(v)) v;
+            case (#err(e)) return #err("Invalid 'bot' field: " # debug_show (e));
+        };
 
-        let ?communityPermissionsJson = Json.get(dataJson, "granted_permissions.community") else return null;
-        let ?communityPermissions = deserializeArrayOfValues(communityPermissionsJson, deserializeCommunityPermission) else return null;
+        let communityPermissions = switch (Json.getAsArray(dataJson, "granted_permissions.community")) {
+            case (#ok(permssions)) switch (deserializeArrayOfValues(permssions, deserializeCommunityPermission)) {
+                case (#ok(v)) v;
+                case (#err(e)) return #err("Invalid 'granted_permissions.community' field: " # e);
+            };
+            case (#err(e)) return #err("Invalid 'granted_permissions.community' field: " # debug_show (e));
+        };
 
-        let ?chatPermissionsJson = Json.get(dataJson, "granted_permissions.chat") else return null;
-        let ?chatPermissions = deserializeArrayOfValues(chatPermissionsJson, deserializeGroupPermission) else return null;
+        let chatPermissions = switch (Json.getAsArray(dataJson, "granted_permissions.chat")) {
+            case (#ok(permssions)) switch (deserializeArrayOfValues(permssions, deserializeGroupPermission)) {
+                case (#ok(v)) v;
+                case (#err(e)) return #err("Invalid 'granted_permissions.chat' field: " # e);
+            };
+            case (#err(e)) return #err("Invalid 'granted_permissions.chat' field: " # debug_show (e));
+        };
 
-        let ?messagePermissionsJson = Json.get(dataJson, "granted_permissions.message") else return null;
-        let ?messagePermissions = deserializeArrayOfValues(messagePermissionsJson, deserializeMessagePermission) else return null;
+        let messagePermissions = switch (Json.getAsArray(dataJson, "granted_permissions.message")) {
+            case (#ok(permissions)) switch (deserializeArrayOfValues(permissions, deserializeMessagePermission)) {
+                case (#ok(v)) v;
+                case (#err(e)) return #err("Invalid 'granted_permissions.message' field: " # e);
+            };
+            case (#err(e)) return #err("Invalid 'granted_permissions.message' field: " # debug_show (e));
+        };
 
         let grantedPermissions : SdkTypes.BotPermissions = {
             community = communityPermissions;
             chat = chatPermissions;
             message = messagePermissions;
         };
-        let ?#String(commandName) = Json.get(dataJson, "command.name") else return null;
-        let ?commandArgsJson = Json.get(dataJson, "command.args") else return null;
-        let ?commandArgs = deserializeArrayOfValues(commandArgsJson, deserializeCommandArg) else return null;
-        let ?initiator = getAsPrincipal(dataJson, "command.initiator") else return null;
+        let commandName = switch (Json.getAsText(dataJson, "command.name")) {
+            case (#ok(v)) v;
+            case (#err(e)) return #err("Invalid 'command.name' field: " # debug_show (e));
+        };
+        let commandArgs : [SdkTypes.CommandArg] = switch (Json.getAsArray(dataJson, "command.args")) {
+            case (#ok(args)) switch (deserializeArrayOfValues(args, deserializeCommandArg)) {
+                case (#ok(v)) v;
+                case (#err(e)) return #err("Invalid 'command.args' field: " # e);
+            };
+            case (#err(e)) return #err("Invalid 'command.args' field: " # debug_show (e));
+        };
+        let initiator = switch (getAsPrincipal(dataJson, "command.initiator")) {
+            case (#ok(v)) v;
+            case (#err(e)) return #err("Invalid 'command.initiator' field: " # debug_show (e));
+        };
         let command : SdkTypes.Command = {
             name = commandName;
             args = commandArgs;
             initiator = initiator;
         };
 
-        ?{
-
+        #ok({
             botApiGateway = botApiGateway;
             bot = bot;
             scope = scope;
             grantedPermissions = grantedPermissions;
             command = command;
-        };
+        });
     };
 
-    private func deserializeArrayOfValues<T>(json : Json.JSON, deserialize : Json.JSON -> ?T) : ?[T] {
-        let #Array(arrayJson) = json else return null;
-        let buffer = Buffer.Buffer<T>(arrayJson.size());
-
-        for (val in arrayJson.vals()) {
-            let ?deserializedValue = deserialize(val) else return null;
-            buffer.add(deserializedValue);
-        };
-        ?Buffer.toArray(buffer);
+    public func deserializeBotActionByApiKey(dataJson : Json.Json) : Result.Result<SdkTypes.BotActionByApiKey, Text> {
+        // TODO
+        Debug.trap("TODO");
     };
 
-    private func deserializeCommandArg(json : Json.JSON) : ?SdkTypes.CommandArg {
-        let ?#String(name) = Json.get(json, "name") else return null;
-        let ?#Object(valueJsonKeys) = Json.get(json, "value") else return null;
+    private func deserializeArrayOfValues<T>(json : [Json.Json], deserialize : Json.Json -> Result.Result<T, Text>) : Result.Result<[T], Text> {
+        let buffer = Buffer.Buffer<T>(json.size());
+        for ((i, val) in IterTools.enumerate(json.vals())) {
+            switch (deserialize(val)) {
+                case (#ok(v)) buffer.add(v);
+                case (#err(e)) return #err("Failed to deserialize array value [" # Nat.toText(i) # "]: " # e);
+            };
+        };
+        #ok(Buffer.toArray(buffer));
+    };
+
+    private func deserializeCommandArg(json : Json.Json) : Result.Result<SdkTypes.CommandArg, Text> {
+        let ?#string(name) = Json.get(json, "name") else return #err("Missing  'name' string field in CommandArg");
+        let ?#object_(valueJsonKeys) = Json.get(json, "value") else return #err("Missing 'value' object field in CommandArg");
         let value : SdkTypes.CommandArgValue = switch (valueJsonKeys[0]) {
             case (("String", stringValue)) {
-                let ?string = getAsText(stringValue, "") else return null;
-                #string(string);
+                switch (Json.getAsText(stringValue, "")) {
+                    case (#ok(string)) #string(string);
+                    case (#err(e)) return #err("Invalid 'String' value in CommandArg: " # debug_show (e));
+                };
             };
-            case (_) return null;
+            case (_) return #err("Invalid 'value' object field in CommandArg");
         };
-        ?{
+        #ok({
             name = name;
             value = value;
-        };
+        });
     };
 
-    private func deserializeMessagePermission(json : Json.JSON) : ?SdkTypes.MessagePermission {
-        let #String(permissionString) = json else return null;
+    private func deserializeMessagePermission(json : Json.Json) : Result.Result<SdkTypes.MessagePermission, Text> {
+        let #string(permissionString) = json else return #err("Invalid message permission, expected string value");
 
         let permission : SdkTypes.MessagePermission = switch (permissionString) {
             case ("text") #text;
@@ -458,13 +488,13 @@ module {
             case ("prize") #prize;
             case ("p2pSwap") #p2pSwap;
             case ("videoCall") #videoCall;
-            case (_) return null;
+            case (_) return #err("Invalid message permission: " # permissionString);
         };
-        ?permission;
+        #ok(permission);
     };
 
-    private func deserializeGroupPermission(json : Json.JSON) : ?SdkTypes.GroupPermission {
-        let #String(permissionString) = json else return null;
+    private func deserializeGroupPermission(json : Json.Json) : Result.Result<SdkTypes.GroupPermission, Text> {
+        let #string(permissionString) = json else return #err("Invalid group permission, expected string value");
 
         let permission : SdkTypes.GroupPermission = switch (permissionString) {
             case ("ChangeRoles") #changeRoles;
@@ -477,13 +507,13 @@ module {
             case ("ReactToMessages") #reactToMessages;
             case ("MentionAllMembers") #mentionAllMembers;
             case ("StartVideoCall") #startVideoCall;
-            case (_) return null;
+            case (_) return #err("Invalid group permission: " # permissionString);
         };
-        ?permission;
+        #ok(permission);
     };
 
-    private func deserializeCommunityPermission(json : Json.JSON) : ?SdkTypes.CommunityPermission {
-        let #String(permissionString) = json else return null;
+    private func deserializeCommunityPermission(json : Json.Json) : Result.Result<SdkTypes.CommunityPermission, Text> {
+        let #string(permissionString) = json else return #err("Invalid community permission, expected string value");
 
         let permission : SdkTypes.CommunityPermission = switch (permissionString) {
             case ("ChangeRoles") #changeRoles;
@@ -493,120 +523,70 @@ module {
             case ("CreatePublicChannel") #createPublicChannel;
             case ("CreatePrivateChannel") #createPrivateChannel;
             case ("ManageUserGroups") #manageUserGroups;
-            case (_) return null;
+            case (_) return #err("Invalid community permission: " # permissionString);
         };
-        ?permission;
+        #ok(permission);
     };
 
-    private func deserializeBotActionChatDetails(dataJson : Json.JSON) : ?SdkTypes.BotActionChatDetails {
-        let ?#Object(chatKeys) = Json.get(dataJson, "chat") else return null;
-        let chat : SdkTypes.Chat = switch (chatKeys[0]) {
-            case (("Direct", directValue)) {
-                let ?directPrincipal = getAsPrincipal(directValue, "") else return null;
-                #direct(directPrincipal);
+    private func deserializeBotActionChatDetails(dataJson : Json.Json) : Result.Result<SdkTypes.BotActionChatDetails, Text> {
+        let (chatType, chatTypeValue) = switch (Json.getAsObject(dataJson, "chat")) {
+            case (#ok(chatObj)) chatObj[0];
+            case (#err(e)) return #err("Invalid 'chat' field: " # debug_show (e));
+        };
+        let chat : SdkTypes.Chat = switch (chatType) {
+            case ("Direct") switch (getAsPrincipal(chatTypeValue, "")) {
+                case (#ok(p)) #direct(p);
+                case (#err(e)) return #err("Invalid 'Direct' chat value: " # debug_show (e));
             };
-            case (("Group", groupValue)) {
-                let ?groupPrincipal = getAsPrincipal(groupValue, "") else return null;
-                #group(groupPrincipal);
+            case ("Group") switch (getAsPrincipal(chatTypeValue, "")) {
+                case (#ok(p)) #group(p);
+                case (#err(e)) return #err("Invalid 'Group' chat value: " # debug_show (e));
             };
-            case (("Channel", channelValue)) {
-                let ?channelPrincipal = getAsPrincipal(channelValue, "[0]") else return null;
-                let ?channelId = getAsNat(channelValue, "[1]") else return null;
+            case ("Channel") {
+                let channelPrincipal = switch (getAsPrincipal(chatTypeValue, "[0]")) {
+                    case (#ok(v)) v;
+                    case (#err(e)) return #err("Invalid 'Channel' chat value: " # debug_show (e));
+                };
+                let channelId = switch (Json.getAsNat(chatTypeValue, "[1]")) {
+                    case (#ok(v)) v;
+                    case (#err(e)) return #err("Invalid 'Channel' chat value: " # debug_show (e));
+                };
                 #channel((channelPrincipal, channelId));
             };
-            case (_) return null;
+            case (_) return #err("Invalid 'chat' field variant type: " # chatType);
         };
 
-        let threadRootMessageIndex = getAsNat(dataJson, "thread_root_message_index");
+        let threadRootMessageIndex = switch (Json.getAsNat(dataJson, "thread_root_message_index")) {
+            case (#ok(v)) ?v;
+            case (#err(_)) null; // TODO?
+        };
 
-        let ?messageId = getAsText(dataJson, "message_id") else return null;
+        let messageId = switch (Json.getAsText(dataJson, "message_id")) {
+            case (#ok(v)) v;
+            case (#err(e)) return #err("Invalid 'message_id' field: " # debug_show (e));
+        };
 
-        ?{
+        #ok({
             chat = chat;
             threadRootMessageIndex = threadRootMessageIndex;
             messageId = messageId;
-        };
+        });
     };
-    private func deserializeBotActionCommunityDetails(dataJson : Json.JSON) : ?SdkTypes.BotActionCommunityDetails {
-        let ?communityId = getAsPrincipal(dataJson, "community_id") else return null;
+    private func deserializeBotActionCommunityDetails(dataJson : Json.Json) : Result.Result<SdkTypes.BotActionCommunityDetails, Text> {
+        let communityId = switch (getAsPrincipal(dataJson, "community_id")) {
+            case (#ok(v)) v;
+            case (#err(e)) return #err("Invalid 'community_id' field: " # debug_show (e));
+        };
 
-        ?{
+        #ok({
             communityId = communityId;
-        };
+        });
     };
 
-    private func verify<T>(jwt : Text, _ : Text) : Result.Result<Json.JSON, Text> {
-        // Split JWT into parts
-        let parts = Text.split(jwt, #char('.')) |> Iter.toArray(_);
-
-        if (parts.size() != 3) {
-            return #err("Invalid JWT");
+    private func getAsPrincipal(json : Json.Json, path : Json.Path) : Result.Result<Principal, { #pathNotFound; #typeMismatch }> {
+        switch (Json.getAsText(json, path)) {
+            case (#ok(v)) #ok(Principal.fromText(v));
+            case (#err(e)) return #err(e);
         };
-
-        // TODO
-        // let headerJson = parts[0];
-        let claimsJson = parts[1];
-        // let signatureStr = parts[2];
-
-        // // Decode base64url signature to bytes
-        let base64UrlEngine = Base64.Base64(#v(Base64.V2), ?true);
-        // let signatureBytes = base64UrlEngine.decode(signatureStr); // TODO handle error
-
-        // // Create message to verify (header + "." + claims)
-        // let message = Text.concat(headerJson, Text.concat(".", claimsJson));
-        // let messageBytes = Blob.toArray(Text.encodeUtf8(message));
-
-        // // Parse PEM public key and verify signature
-        // let #ok = await* ECDSA.verify({
-        //     publicKey = publicKeyPem;
-        //     message = messageBytes;
-        //     signature = signatureBytes;
-        //     algorithm = #P256;
-        // }) else return return #err("Signature verification failed");
-
-        // Decode and parse claims
-        let claimsBytes = base64UrlEngine.decode(claimsJson); // TODO handle error
-        let ?claimsText = Text.decodeUtf8(Blob.fromArray(claimsBytes)) else return #err("Unable to parse claims");
-        switch (Json.parse(claimsText)) {
-            case (#err(e)) #err("Invalid claims JSON: " # debug_show (e));
-            case (#ok(claims)) {
-                let ?expJson = Json.get(claims, "exp") else return #err("Missing 'exp' field in claims");
-                let #Number(#Int(expInt)) = expJson else return #err("Invalid 'exp' field in claims, must be an integer");
-                // TODO is nanoseconds? or millis?
-                if (expInt < Time.now()) {
-                    return #err("JWT has expired");
-                };
-
-                let ?claimTypeJson = Json.get(claims, "claimType") else return #err("Missing 'claimType' field in claims");
-                let #String(_) = claimTypeJson else return #err("Invalid 'claimType' field in claims, must be a string");
-
-                // TODO claim type?
-
-                let ?dataJson = Json.get(claims, "data") else return #err("Missing 'data' field in claims");
-
-                #ok(dataJson);
-            };
-        };
-    };
-
-    private func getAsNat(json : Json.JSON, path : Json.Path) : ?Nat {
-        let ?value = Json.get(json, path) else return null;
-        let #Number(#Int(intValue)) = value else return null;
-        if (intValue < 0) {
-            // Must be a positive integer
-            return null;
-        };
-        ?Int.abs(intValue);
-    };
-
-    private func getAsText(json : Json.JSON, path : Json.Path) : ?Text {
-        let ?value = Json.get(json, path) else return null;
-        let #String(text) = value else return null;
-        ?text;
-    };
-
-    private func getAsPrincipal(json : Json.JSON, path : Json.Path) : ?Principal {
-        let ?principalStr = getAsText(json, path) else return null;
-        ?Principal.fromText(principalStr);
     };
 };
