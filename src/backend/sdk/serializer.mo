@@ -7,61 +7,63 @@ import Principal "mo:base/Principal";
 import Buffer "mo:base/Buffer";
 import Debug "mo:base/Debug";
 import Nat "mo:base/Nat";
+import Array "mo:base/Array";
 import SdkTypes "./types";
 import IterTools "mo:itertools/Iter";
 
 module {
 
     public func serializeBotSchema(botSchema : SdkTypes.BotSchema) : Json.Json {
-        let autonomousConfigJson = switch (botSchema.autonomousConfig) {
-            case (null) #null_;
-            case (?config) serializeAutonomousConfig(config);
-        };
-
-        #object_([
+        var fields = [
             ("description", #string(botSchema.description)),
             ("commands", serializeArrayOfValues(botSchema.commands, serializeSlashCommand)),
-            ("autonomous_config", autonomousConfigJson),
-        ]);
+        ];
+        switch (botSchema.autonomousConfig) {
+            case (null) ();
+            case (?config) fields := Array.append(fields, [("autonomous_config", serializeAutonomousConfig(config))]);
+        };
+
+        #object_(fields);
     };
 
     private func serializeAutonomousConfig(config : SdkTypes.AutonomousConfig) : Json.Json {
-        let permissionsJson = switch (config.permissions) {
-            case (null) #null_;
-            case (?permissions) serializeBotPermissions(permissions);
+        var fields : [(Text, Json.Json)] = [];
+        switch (config.permissions) {
+            case (null) ();
+            case (?permissions) fields := Array.append(fields, [("permissions", serializeBotPermissions(permissions))]);
         };
 
-        #object_([("permissions", permissionsJson)]);
+        #object_(fields);
     };
 
     private func serializeSlashCommand(command : SdkTypes.SlashCommand) : Json.Json {
-        let placeholderJson = switch (command.placeholder) {
-            case (null) #null_;
-            case (?placeholder) #string(placeholder);
-        };
-
-        #object_([
+        var fields : [(Text, Json.Json)] = [
             ("name", #string(command.name)),
             ("description", #string(command.description)),
-            ("placeholder", placeholderJson),
             ("params", serializeArrayOfValues(command.params, serializeSlashCommandParam)),
             ("permissions", serializeBotPermissions(command.permissions)),
-        ]);
+        ];
+        switch (command.placeholder) {
+            case (null) ();
+            case (?placeholder) fields := Array.append(fields, [("placeholder", #string(placeholder))]);
+        };
+
+        #object_(fields);
     };
 
     private func serializeSlashCommandParam(param : SdkTypes.SlashCommandParam) : Json.Json {
-        let placeholderJson = switch (param.placeholder) {
-            case (null) #null_;
-            case (?placeholder) #string(placeholder);
-        };
-
-        #object_([
+        var fields : [(Text, Json.Json)] = [
             ("name", #string(param.name)),
             ("description", #string(param.description)),
-            ("placeholder", placeholderJson),
             ("required", #bool(param.required)),
             ("param_type", serializeParamType(param.paramType)),
-        ]);
+        ];
+        switch (param.placeholder) {
+            case (null) ();
+            case (?placeholder) fields := Array.append(fields, [("placeholder", #string(placeholder))]);
+        };
+
+        #object_(fields);
     };
 
     private func serializeParamType(paramType : SdkTypes.SlashCommandParamType) : Json.Json {
@@ -161,11 +163,11 @@ module {
     };
 
     public func serializeSuccess(success : SdkTypes.SuccessResult) : Json.Json {
-        let messageJson = switch (success.message) {
-            case (null) #null_;
-            case (?message) serializeMessage(message);
+        let fields : [(Text, Json.Json)] = switch (success.message) {
+            case (null) [];
+            case (?message) [("message", serializeMessage(message))];
         };
-        #object_([("message", messageJson)]);
+        #object_(fields);
     };
 
     private func serializeMessage(message : SdkTypes.Message) : Json.Json {
@@ -456,16 +458,36 @@ module {
     };
 
     private func deserializeCommandArg(json : Json.Json) : Result.Result<SdkTypes.CommandArg, Text> {
-        let ?#string(name) = Json.get(json, "name") else return #err("Missing  'name' string field in CommandArg");
-        let ?#object_(valueJsonKeys) = Json.get(json, "value") else return #err("Missing 'value' object field in CommandArg");
-        let value : SdkTypes.CommandArgValue = switch (valueJsonKeys[0]) {
-            case (("String", stringValue)) {
-                switch (Json.getAsText(stringValue, "")) {
-                    case (#ok(string)) #string(string);
-                    case (#err(e)) return #err("Invalid 'String' value in CommandArg: " # debug_show (e));
-                };
+        let name = switch (Json.getAsText(json, "name")) {
+            case (#ok(v)) v;
+            case (#err(e)) return #err("Invalid 'name' field: " # debug_show (e));
+        };
+        let (valueType, valueTypeValue) = switch (Json.getAsObject(json, "value")) {
+            case (#ok(valueObj)) valueObj[0];
+            case (#err(e)) return #err("Invalid 'value' field: " # debug_show (e));
+        };
+        let value : SdkTypes.CommandArgValue = switch (valueType) {
+            case ("String") switch (Json.getAsText(valueTypeValue, "")) {
+                case (#ok(string)) #string(string);
+                case (#err(e)) return #err("Invalid 'String' value in CommandArg: " # debug_show (e));
             };
-            case (_) return #err("Invalid 'value' object field in CommandArg");
+            case ("Boolean") switch (Json.getAsBool(valueTypeValue, "")) {
+                case (#ok(bool)) #boolean(bool);
+                case (#err(e)) return #err("Invalid 'Boolean' value in CommandArg: " # debug_show (e));
+            };
+            case ("Integer") switch (Json.getAsInt(valueTypeValue, "")) {
+                case (#ok(int)) #integer(int);
+                case (#err(e)) return #err("Invalid 'Integer' value in CommandArg: " # debug_show (e));
+            };
+            case ("Decimal") switch (Json.getAsFloat(valueTypeValue, "")) {
+                case (#ok(float)) #decimal(float);
+                case (#err(e)) return #err("Invalid 'Decimal' value in CommandArg: " # debug_show (e));
+            };
+            case ("User") switch (getAsPrincipal(valueTypeValue, "")) {
+                case (#ok(p)) #user(p);
+                case (#err(e)) return #err("Invalid 'User' value in CommandArg: " # debug_show (e));
+            };
+            case (_) return #err("Invalid value variant type: " # valueType);
         };
         #ok({
             name = name;
@@ -477,17 +499,17 @@ module {
         let #string(permissionString) = json else return #err("Invalid message permission, expected string value");
 
         let permission : SdkTypes.MessagePermission = switch (permissionString) {
-            case ("text") #text;
-            case ("image") #image;
-            case ("video") #video;
-            case ("audio") #audio;
-            case ("file") #file;
-            case ("poll") #poll;
-            case ("crypto") #crypto;
-            case ("giphy") #giphy;
-            case ("prize") #prize;
-            case ("p2pSwap") #p2pSwap;
-            case ("videoCall") #videoCall;
+            case ("Text") #text;
+            case ("Image") #image;
+            case ("Video") #video;
+            case ("Audio") #audio;
+            case ("File") #file;
+            case ("Poll") #poll;
+            case ("Crypto") #crypto;
+            case ("Giphy") #giphy;
+            case ("Prize") #prize;
+            case ("P2pSwap") #p2pSwap;
+            case ("VideoCall") #videoCall;
             case (_) return #err("Invalid message permission: " # permissionString);
         };
         #ok(permission);

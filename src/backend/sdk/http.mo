@@ -56,6 +56,7 @@ module {
                         case (#badRequest(badRequest)) (400, SdkSerializer.serializeBadRequest(badRequest));
                         case (#internalError(error)) (500, SdkSerializer.serializeInternalError(error));
                     };
+                    Debug.print("Response: " # debug_show (response));
                     let jsonBytes = Text.encodeUtf8(Json.stringify(response, null));
                     return {
                         status_code = statusCode;
