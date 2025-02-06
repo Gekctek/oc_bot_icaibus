@@ -1,7 +1,7 @@
 import HttpTypes "mo:http-types";
 import Publish "./commands/publish";
-import SdkTypes "./sdk/types";
-import SdkHttp "./sdk/http";
+import SdkTypes "mo:openchat-bot-sdk/types";
+import SdkHttp "mo:openchat-bot-sdk/http";
 
 actor {
 
@@ -19,14 +19,26 @@ actor {
 
   private func execute(action : SdkTypes.BotAction) : async* SdkTypes.CommandResponse {
     switch (action) {
-      case (#command(commandAction)) switch (commandAction.command.name) {
-        case ("publish") await* Publish.execute(commandAction.command.args);
-        case (_) #badRequest(#commandNotFound);
-      };
-      case (#apiKey(apiKeyAction)) switch (apiKeyAction.scope) {
-        // TODO
-        case (_) #badRequest(#commandNotFound);
-      };
+      case (#command(commandAction)) await* executeCommandAction(commandAction);
+      case (#apiKey(apiKeyAction)) await* executeApiKeyAction(apiKeyAction);
+    };
+  };
+
+  private func executeCommandAction(action : SdkTypes.BotActionByCommand) : async* SdkTypes.CommandResponse {
+    let messageId = switch (action.scope) {
+      case (#chat(chatDetails)) ?chatDetails.messageId;
+      case (#community(_)) null;
+    };
+    switch (action.command.name) {
+      case ("publish") await* Publish.execute(messageId, action.command.args);
+      case (_) #badRequest(#commandNotFound);
+    };
+  };
+
+  private func executeApiKeyAction(action : SdkTypes.BotActionByApiKey) : async* SdkTypes.CommandResponse {
+    switch (action.scope) {
+      // TODO
+      case (_) #badRequest(#commandNotFound);
     };
   };
 
