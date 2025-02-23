@@ -1,10 +1,8 @@
-import SdkTypes "mo:openchat-bot-sdk/types";
+import SdkTypes "mo:openchat-bot-sdk/Types";
 import Debug "mo:base/Debug";
 import Result "mo:base/Result";
 
 module {
-
-    // Api key - eyJnYXRld2F5IjoiYnI1ZjctN3VhYWEtYWFhYWEtcWFhY2EtY2FpIiwiYm90X2lkIjoib3RrenEtbmhlZ2QtbnVvaWItc2hjeXEiLCJzY29wZSI6eyJDaGF0Ijp7Ikdyb3VwIjoiZHpoMjItbnVhYWEtYWFhYWEtcWFhb2EtY2FpIn19LCJzZWNyZXQiOiIyNzM2MjkzMTE1NzAwODg0MzM0Mjg1OTY1MzE1MTQyNTg4NTk1MDMifQ
 
     public func execute(messageId : ?SdkTypes.MessageId, args : [SdkTypes.CommandArg]) : async* SdkTypes.CommandResponse {
         let message = switch (parseMessage(args)) {

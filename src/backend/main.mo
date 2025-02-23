@@ -1,7 +1,8 @@
 import HttpTypes "mo:http-types";
 import Publish "./commands/publish";
-import SdkTypes "mo:openchat-bot-sdk/types";
-import SdkHttp "mo:openchat-bot-sdk/http";
+import SdkTypes "mo:openchat-bot-sdk/Types";
+import SdkHttp "mo:openchat-bot-sdk/HTTP";
+import Text "mo:base/Text";
 
 actor {
 
@@ -37,12 +38,13 @@ actor {
 
   private func executeApiKeyAction(action : SdkTypes.BotActionByApiKey) : async* SdkTypes.CommandResponse {
     switch (action.scope) {
-      // TODO
       case (_) #badRequest(#commandNotFound);
     };
   };
 
-  let handler = SdkHttp.HttpHandler(botSchema, execute);
+  let openChatPublicKey = Text.encodeUtf8("MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE5GaOVUjuWn59a8Bp79694D5KClL77iirARZNAzxLY2U4HYcEbU+PtOfM8/00Ovo+2uSbFhsCQPw+ijM3pf6OOQ=="); // TODO handle error
+
+  let handler = SdkHttp.HttpHandler(botSchema, execute, openChatPublicKey);
 
   public query func http_request(request : HttpTypes.Request) : async HttpTypes.Response {
     handler.http_request(request);
@@ -51,4 +53,5 @@ actor {
   public func http_request_update(request : HttpTypes.UpdateRequest) : async HttpTypes.UpdateResponse {
     await* handler.http_request_update(request);
   };
+
 };
