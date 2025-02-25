@@ -1,16 +1,16 @@
-import SdkTypes "mo:openchat-bot-sdk/Types";
+import Sdk "mo:openchat-bot-sdk";
 import Debug "mo:base/Debug";
 import Result "mo:base/Result";
 
 module {
 
-    public func execute(messageId : ?SdkTypes.MessageId, args : [SdkTypes.CommandArg]) : async* SdkTypes.CommandResponse {
+    public func execute(messageId : ?Sdk.MessageId, args : [Sdk.CommandArg]) : async* Sdk.CommandResponse {
         let message = switch (parseMessage(args)) {
             case (#ok(message)) message;
             case (#err(response)) return response;
         };
 
-        let messageOrNull : ?SdkTypes.Message = switch (messageId) {
+        let messageOrNull : ?Sdk.Message = switch (messageId) {
             case (?id) ?{
                 id = id;
                 content = #text({
@@ -25,7 +25,7 @@ module {
         });
     };
 
-    public func getSchema() : SdkTypes.SlashCommand {
+    public func getSchema() : Sdk.SlashCommand {
         {
             name = "publish";
             placeholder = ?"Publish a message to ICaiBus";
@@ -49,7 +49,7 @@ module {
         };
     };
 
-    private func parseMessage(args : [SdkTypes.CommandArg]) : Result.Result<Text, SdkTypes.CommandResponse> {
+    private func parseMessage(args : [Sdk.CommandArg]) : Result.Result<Text, Sdk.CommandResponse> {
         if (args.size() != 1) {
             Debug.print("Invalid request: Only one argument is allowed");
             return #err(#badRequest(#argsInvalid));
