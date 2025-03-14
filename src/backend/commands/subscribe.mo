@@ -4,6 +4,7 @@ import Text "mo:base/Text";
 import Sdk "mo:openchat-bot-sdk";
 import Debug "mo:base/Debug";
 import Result "mo:base/Result";
+import Error "mo:new-base/Error";
 
 module {
 
@@ -11,15 +12,27 @@ module {
         to : Text;
     };
 
-    public func execute(messageId : ?Sdk.MessageId, args : Args, subscriber : Subscriber.Subscriber) : async* Sdk.CommandResponse {
-
+    public func execute(context : Sdk.CommandExecutionContext, subscriberFactory : () -> Subscriber.Subscriber) : async* Sdk.CommandResponse {
+        let messageId = switch (context.scope) {
+            case (#chat(chatDetails)) ?chatDetails.messageId;
+            case (#community(_)) null;
+        };
+        let args = switch (parseArgs(context.command.args)) {
+            case (#ok(args)) args;
+            case (#err(response)) return response;
+        };
+        let subscriber = subscriberFactory();
         let subscribeResult = await* subscriber.subscribe([{
             namespace = "com.icp.org.trx_stream";
             config = [
                 (Subscriber.CONST.subscription.filter, #Text("$.to == " # args.to)), // TODO validate is address
             ];
             memo = null;
-            listener = #Async(onNotification);
+            listener = #Async(
+                func(event : Subscriber.EventNotification) : async* () {
+                    await* onNotification(event, context);
+                }
+            );
         }]);
         switch (subscribeResult[0]) {
             case (?#Ok(_)) ();
@@ -40,6 +53,8 @@ module {
                 content = #text({
                     text = "Subscrition created";
                 });
+                blockLevelMarkdown = false;
+                ephemeral = false;
                 finalised = true;
             };
             case (_) null;
@@ -49,7 +64,7 @@ module {
         });
     };
 
-    private func onNotification<system>(event : Subscriber.EventNotification) : async* () {
+    private func onNotification<system>(event : Subscriber.EventNotification, context : Sdk.CommandExecutionContext) : async* () {
         Debug.print("Received Event: " # debug_show (event));
         let #Class(data) = event.data else return;
         let trx = data
@@ -67,9 +82,42 @@ module {
             case (_) 0;
         };
 
-        Debug.print("Received Transaction: " # debug_show ((amount, from, spender, ts, trxId)));
+        let message = "Received Transaction: " # debug_show ((amount, from, spender, ts, trxId));
+        Debug.print(message);
+        let apiKeyScope : Sdk.ApiKeyScope = switch (context.scope) {
+            case (#chat(chatDetails)) #chat(chatDetails.chat);
+            case (#community(community)) #community(community.communityId);
+        };
 
-        // TODO
+        let ?apiKeyContext = context.getApiKeyByScope(apiKeyScope) else Debug.trap("No API key found for scope: " # debug_show (apiKeyScope));
+
+        let botApiActor = context.getBotApiActor();
+
+        let error : ?Text = try {
+            let result = await botApiActor.bot_send_message({
+                channel_id = null;
+                message_id = null;
+                content = #Text({
+                    text = message;
+                });
+                block_level_markdown = false;
+                finalised = true;
+                auth_token = switch (apiKeyContext.token) {
+                    case (#jwt(jwt)) #Jwt(jwt);
+                    case (#apiKey(apiKey)) #ApiKey(apiKey);
+                };
+            });
+            switch (result) {
+                case (#Success(_)) null;
+                case (error) ?debug_show (error);
+            };
+        } catch (error) {
+            ?Error.message(error);
+        };
+        switch (error) {
+            case (?error) Debug.trap("Error echoing message: " #error);
+            case (_) ();
+        };
 
     };
 
@@ -77,7 +125,7 @@ module {
         {
             name = "subscribe";
             placeholder = null;
-            description = "Subscribe to ICaiBus";
+            description = "Subscribe to ICaiBus address watcher";
             params = [{
                 name = "to";
                 description = "Address to subscribe to";
@@ -87,6 +135,7 @@ module {
                     choices = [];
                     minLength = 1;
                     maxLength = 100;
+                    multiLine = false;
                 });
             }];
             permissions = {

@@ -1,7 +1,7 @@
 {
-  "dfx": "0.23.0",
+  "dfx": "0.25.1-beta.1",
   "canisters": {
-    "backend": {
+    "icaibus_bot": {
       "main": "src/backend/main.mo",
       "type": "motoko"
     }
