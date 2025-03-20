@@ -4,6 +4,7 @@ import Text "mo:base/Text";
 import Sdk "mo:openchat-bot-sdk";
 import Debug "mo:base/Debug";
 import Result "mo:base/Result";
+import Buffer "mo:base/Buffer";
 import Error "mo:new-base/Error";
 
 module {
@@ -12,7 +13,11 @@ module {
         to : Text;
     };
 
-    public func execute(context : Sdk.CommandExecutionContext, subscriberFactory : () -> Subscriber.Subscriber) : async* Sdk.CommandResponse {
+    public func execute(
+        context : Sdk.CommandExecutionContext,
+        subscriberFactory : () -> Subscriber.Subscriber,
+        logs : Buffer.Buffer<Text>,
+    ) : async* Sdk.CommandResponse {
         let messageId = switch (context.scope) {
             case (#chat(chatDetails)) ?chatDetails.messageId;
             case (#community(_)) null;
@@ -30,7 +35,7 @@ module {
             memo = null;
             listener = #Async(
                 func(event : Subscriber.EventNotification) : async* () {
-                    await* onNotification(event, context);
+                    await* onNotification(event, context, logs);
                 }
             );
         }]);
@@ -64,8 +69,12 @@ module {
         });
     };
 
-    private func onNotification<system>(event : Subscriber.EventNotification, context : Sdk.CommandExecutionContext) : async* () {
-        Debug.print("Received Event: " # debug_show (event));
+    private func onNotification<system>(
+        event : Subscriber.EventNotification,
+        context : Sdk.CommandExecutionContext,
+        logs : Buffer.Buffer<Text>,
+    ) : async* () {
+        logs.add("Received Event: " # debug_show (event));
         let #Class(data) = event.data else return;
         let trx = data
         |> Array.map<Subscriber.ICRC16Property, Subscriber.ICRC16MapItem>(_, func(x) : Subscriber.ICRC16MapItem { (x.name, x.value) })
@@ -83,7 +92,7 @@ module {
         };
 
         let message = "Received Transaction: " # debug_show ((amount, from, spender, ts, trxId));
-        Debug.print(message);
+        logs.add(message);
         let apiKeyScope : Sdk.ApiKeyScope = switch (context.scope) {
             case (#chat(chatDetails)) #chat(chatDetails.chat);
             case (#community(community)) #community(community.communityId);
@@ -115,8 +124,13 @@ module {
             ?Error.message(error);
         };
         switch (error) {
-            case (?error) Debug.trap("Error echoing message: " #error);
-            case (_) ();
+            case (?error) {
+                logs.add("Error echoing message: " # error);
+                Debug.trap("Error echoing message: " #error);
+            };
+            case (_) {
+                logs.add("Success");
+            };
         };
 
     };

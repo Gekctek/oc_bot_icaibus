@@ -5,6 +5,7 @@ import Text "mo:base/Text";
 import Subscriber "mo:icrc72-subscriber-mo";
 import SubscriberService "mo:icrc72-subscriber-mo/service";
 import Principal "mo:base/Principal";
+import Buffer "mo:base/Buffer";
 import TimerTool "mo:timer-tool";
 import SubscriptionUtil "SubscriptionUtil";
 
@@ -32,6 +33,7 @@ shared ({ caller = deployer }) actor class Actor(
   stable var subscriberStableData : Subscriber.State = Subscriber.Migration.migration.initialState;
   stable var timerStableData : TimerTool.State = TimerTool.Migration.migration.initialState;
   stable var apiKeys : [Text] = [];
+  let logs = Buffer.Buffer<Text>(100);
 
   let subscriberFactory = SubscriptionUtil.create<system>(
     Principal.fromActor(this),
@@ -50,7 +52,7 @@ shared ({ caller = deployer }) actor class Actor(
   private func executeCommandAction(context : Sdk.CommandExecutionContext) : async* Sdk.CommandResponse {
     switch (context.command.name) {
       case ("subscribe") {
-        await* SubscribeCommand.execute(context, subscriberFactory);
+        await* SubscribeCommand.execute(context, subscriberFactory, logs);
       };
       case (_) #badRequest(#commandNotFound);
     };
@@ -79,6 +81,10 @@ shared ({ caller = deployer }) actor class Actor(
 
   public query func get_stats() : async Subscriber.Stats {
     return subscriberFactory().stats();
+  };
+
+  public query func get_logs() : async [Text] {
+    return logs |> Buffer.toArray(_);
   };
 
 };
